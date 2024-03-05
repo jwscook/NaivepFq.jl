@@ -1,0 +1,13 @@
+name = "NaivepFq"
+uuid = "0bc65593-8fae-4b05-a9ff-ca2611ff3142"
+authors = ["James Cook <cookjws@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[extras]
+HypergeometricFunctions = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
+
+[targets]
+test = ["HypergeometricFunctions"]
