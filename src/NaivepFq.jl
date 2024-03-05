@@ -13,17 +13,17 @@ struct RisingPochammer{N,T}
   vs::SVector{N,T}
   sₙ::MVector{N,T}
 end
-function RisingPochammer(vs::StaticVector{N,T}) where {N,T<:Number}
-  return RisingPochammer(SVector(vs), (@MVector ones(eltype(vs), length(vs))))
+function RisingPochammer(vs::StaticVector{N,T}) where {N<:Number,T<:Number}
+  return RisingPochammer(SVector(vs), (@MVector ones(T, N)))
 end
-function RisingPochammer(vs::StaticVector{N,T}) where {N,T}
+function RisingPochammer(vs::StaticVector{N,T}) where {N<:Number,T}
   return RisingPochammer(SVector(vs), @MVector(T[]))
 end
 
 function RisingPochammer(vs::NTuple{N,T}) where {N,T<:Number}
-  return RisingPochammer((@SVector T[vs...]),
-                         (@MVector ones(eltype(vs), length(vs))))
+  return RisingPochammer(SVector(vs), (@MVector ones(T, N)))
 end
+#RisingPochammer(vs::Tuple{T}) where {T<:Real} = RisingPochammer(NTuple{1,T}(vs))
 function RisingPochammer(vs::NTuple{0})
   RisingPochammer((@SVector Bool[]), (@MVector Bool[]))
 end
@@ -39,7 +39,7 @@ end
 
 Base.:*(p::RisingPochammer{0}, x) = x
 Base.:*(p::RisingPochammer{1}, x) = p.sₙ[1] * x
-Base.:*(p::RisingPochammer, x) = mapreduce(p.sₙ, *, init=x)
+Base.:*(p::RisingPochammer, x) = x * prod(p.sₙ)
 Base.:/(x, p::RisingPochammer{0}) = x
 Base.:/(x, p::RisingPochammer{1}) = x / p.sₙ[1]
 Base.:/(x, p::RisingPochammer) = x / prod(p.sₙ)
@@ -74,7 +74,8 @@ function pFq(αs, βs, z; maxiters::Int = 1000_000,
     αₙ(n)
     βₙ(n)
     nbang *= (n += 1)
-    a += αₙ * zⁿ * inv(βₙ * nbang)
+    a += (αₙ * inv(βₙ * nbang)) * zⁿ
+    @assert isfinite(a) (αₙ, zⁿ, (βₙ * nbang))
   end
   return a
 end
