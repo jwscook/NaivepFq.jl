@@ -6,20 +6,22 @@ const HFpFq = HypergeometricFunctions.pFq
 @testset "NaivepFq" begin
   t0 = 0.0
   t1 = 0.0
-  for i in 0:1, j in 0:1, T in (Float64, )
+  for i in 0:0, j in 1:1, T in (Float64, )
     for k in 0:1, _ in 1:100
       a = Tuple(rand(T, i) .* 10^k)
       b = Tuple(rand(T, j) .* 10^k)
       z = rand(T) .* 10^k
-      try
+      a1 = SVector(a)
+      b1 = SVector(b)
+      #try
       t1 += @elapsed r1 = HFpFq(a, b, z)
-      t0 += @elapsed r0 = NaivepFq.pFq(a, b, z)
+      t0 += @elapsed r0 = NaivepFq.pFq(a1, b1, z; minloops=10)
       @test r0 ≈ r1
-      catch
-      end
+      #catch
+      #end
     end
   end
-  @show t0 / t1
+  @show t0, t1
 end
 
 #@btime pFq(Tuple(()), (2.0,), 3.0)

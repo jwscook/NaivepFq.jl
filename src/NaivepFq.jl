@@ -13,14 +13,14 @@ struct RisingPochammer{N,T}
   vs::SVector{N,T}
   sₙ::MVector{N,T}
 end
-function RisingPochammer(vs::StaticVector{N,T}) where {N<:Number,T<:Number}
+function RisingPochammer(vs::StaticVector{N,T}) where {N,T}
   return RisingPochammer(SVector(vs), (@MVector ones(T, N)))
 end
-function RisingPochammer(vs::StaticVector{N,T}) where {N<:Number,T}
+function RisingPochammer(vs::StaticVector{0,T}) where {T}
   return RisingPochammer(SVector(vs), @MVector(T[]))
 end
 
-function RisingPochammer(vs::NTuple{N,T}) where {N,T<:Number}
+function RisingPochammer(vs::NTuple{N,T}) where {N,T}
   return RisingPochammer(SVector(vs), (@MVector ones(T, N)))
 end
 #RisingPochammer(vs::Tuple{T}) where {T<:Real} = RisingPochammer(NTuple{1,T}(vs))
@@ -44,7 +44,6 @@ Base.:/(x, p::RisingPochammer{0}) = x
 Base.:/(x, p::RisingPochammer{1}) = x / p.sₙ[1]
 Base.:/(x, p::RisingPochammer) = x / prod(p.sₙ)
 
-
 nontupletypes(αs::A, βs::B, z::Z) where {A<:Tuple{},B<:Tuple{},Z} = Z
 nontupletypes(αs::A, βs::B, z::Z) where {A,B<:Tuple{},Z} = promote_type(eltype(A),Z)
 nontupletypes(αs::A, βs::B, z::Z) where {A<:Tuple{},B,Z} = promote_type(eltype(B),Z)
@@ -52,7 +51,8 @@ nontupletypes(αs::A, βs::B, z::Z) where {A,B,Z} = promote_type(eltype(A),eltyp
 
 function nloopsskip(αs, βs, z)
   T = float(nontupletypes(αs, βs, z))
-  return max(floor(Int, log2(abs((prod(αs) * z) / prod(βs))) * 16), 1)
+  val = (foldl(*, αs; init=1) * z) / foldl(*, βs; init=1)
+  return max(floor(Int, log2(abs(val)) * 16), 1)
 end
 
 function pFq(αs, βs, z; maxiters::Int = 1000_000,
