@@ -116,55 +116,55 @@ end
 #  return a
 #end
 
-function pFq(αs, βs, z; maxiters::Int = 1000_000,
-             rtol=6400eps(float(real(nontupletypes(αs, βs, z)))),
-             minloops=nloopsskip(αs, βs, z))
-             
-  αₙ = RisingPochammer(αs)
-  βₙ = RisingPochammer(βs)
-
-  T = float(nontupletypes(αs, βs, z))
-  abs(z) < eps(real(T)) && return one(T)
-
-  a = one(T)
-  zⁿ = one(typeof(z))
-  nbang = one(float(real(T)))
-  x0 = a
-
-  n = 0
-  zⁿ *= z
-  αₙ(n)
-  βₙ(n)
-  nbang *= (n += 1) # n=1
-  t = (αₙ * inv(βₙ * nbang)) * zⁿ
-  a += t
-  x1 = a
-
-  r = -one(T)
-  p = one(T)
-  q = zero(T)
-
-  while n < minloops || !fastisapprox(r, q, rtol=rtol, atol=0, nans=true)
-    p = q
-    zⁿ *= z
-    αₙ(n)
-    βₙ(n)
-    nbang *= (n += 1)
-    t = (αₙ * inv(βₙ * nbang)) * zⁿ
-    a += t
-    x2 = a
-    isfinite(x2) || return q
-    x1 == x2 && return q
-    den = 1 / (x2 - x1) - 1 / (x1 - x0)
-    iszero(den) && return q
-    q = x1 + 1 / den
-    x0 = x1
-    x1 = x2
-    x0 == x1 && return q
-    r = (1 / n - 1 / (n-1)) / (1 / p / n - 1 / q / (n-1))
-  end
-  return r
-end
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=6400eps(float(real(nontupletypes(αs, βs, z)))),
+#             minloops=nloopsskip(αs, βs, z))
+#             
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a = one(T)
+#  zⁿ = one(typeof(z))
+#  nbang = one(float(real(T)))
+#  x0 = a
+#
+#  n = 0
+#  zⁿ *= z
+#  αₙ(n)
+#  βₙ(n)
+#  nbang *= (n += 1) # n=1
+#  t = (αₙ * inv(βₙ * nbang)) * zⁿ
+#  a += t
+#  x1 = a
+#
+#  r = -one(T)
+#  p = one(T)
+#  q = zero(T)
+#
+#  while n < minloops || !fastisapprox(r, q, rtol=rtol, atol=0, nans=true)
+#    p = q
+#    zⁿ *= z
+#    αₙ(n)
+#    βₙ(n)
+#    nbang *= (n += 1)
+#    t = (αₙ * inv(βₙ * nbang)) * zⁿ
+#    a += t
+#    x2 = a
+#    isfinite(x2) || return q
+#    x1 == x2 && return q
+#    den = 1 / (x2 - x1) - 1 / (x1 - x0)
+#    iszero(den) && return q
+#    q = x1 + 1 / den
+#    x0 = x1
+#    x1 = x2
+#    x0 == x1 && return q
+#    r = (1 / n - 1 / (n-1)) / (1 / p / n - 1 / q / (n-1))
+#  end
+#  return r
+#end
 
 
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
@@ -201,5 +201,42 @@ end
 #  end
 #  return isfinite(r) ? r : s
 #end
+
+
+function pFq(αs, βs, z; maxiters::Int = 1000_000,
+             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+             drummondk=64, minloops=4)
+             
+  αₙ = RisingPochammer(αs)
+  βₙ = RisingPochammer(βs)
+
+  T = float(nontupletypes(αs, βs, z))
+  abs(z) < eps(real(T)) && return one(T)
+
+  a, b = one(T), zero(T)
+  numsum, densum = zero(T), zero(T)
+  s = zⁿ = one(T)
+  jbang = binomialkj = one(float(real(T)))
+  sgn = -1
+  j = 0
+  while j < minloops || j < drummondk && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+    b = a
+    zⁿ *= z
+    αₙ(j)
+    βₙ(j)
+    jbang *= (j += 1)
+    t = (αₙ * inv(βₙ * jbang)) * zⁿ
+    s += t
+    sgn *= -1
+    den = sgn * binomialkj / t
+    num = den * s 
+    densum += den
+    numsum += num
+    a = numsum / densum
+    binomialkj *= (drummondk - j) / (j + 1)
+  end
+  return a
+end
+
 
 end # module NaivepFq
