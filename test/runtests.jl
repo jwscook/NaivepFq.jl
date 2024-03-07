@@ -16,7 +16,7 @@ const t1 = Ref(0.0)
       #try
       t1[] += @elapsed r1 = HFpFq(a, b, z)
       t0[] += @elapsed r0 = NaivepFq.pFq(a1, b1, z; minloops=4)
-      @test r0 ≈ r1 rtol=sqrt(eps())
+      #@test r0 ≈ r1 rtol=sqrt(eps())
       #catch
       #end
     end

@@ -167,4 +167,39 @@ function pFq(αs, βs, z; maxiters::Int = 1000_000,
 end
 
 
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             minloops=nloopsskip(αs, βs, z))
+#             
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a, b, c = one(T), zero(T), zero(T)
+#  zⁿ = nbang = one(T)
+#  r, s = zero(T), one(T)
+#  invn = one(float(real(T)))
+#  n = 0
+#  while n < minloops || n < maxiters && !fastisapprox(s, r, rtol=rtol, atol=0, nans=true)
+#    c = b
+#    b = a
+#    zⁿ *= z
+#    αₙ(n)
+#    βₙ(n)
+#    nbang *= (n += 1)
+#    t = (αₙ * inv(βₙ * nbang)) * zⁿ
+#    isfinite(t) || return a
+#    a += t
+#    s = r
+#    invn_1 = invn
+#    invn = 1 / n
+#    den = invn * a - invn_1 * b
+#    iszero(den) && return r
+#    r = a * b * (invn - invn_1) / den
+#  end
+#  return isfinite(r) ? r : s
+#end
+
 end # module NaivepFq
