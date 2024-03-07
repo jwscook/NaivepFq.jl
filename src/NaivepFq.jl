@@ -1,5 +1,7 @@
 module NaivepFq
 
+# https://arxiv.org/pdf/math/0306302.pdf really useful
+
 using StaticArrays
 
 function fastisapprox(A::Number, B::Number; atol, rtol, nans)
