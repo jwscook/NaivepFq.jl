@@ -39,10 +39,10 @@ end
 
 Base.:*(p::RisingPochammer{0}, x) = x
 Base.:*(p::RisingPochammer{1}, x) = p.sₙ[1] * x
-Base.:*(p::RisingPochammer, x) = x * prod(p.sₙ)
+Base.:*(p::RisingPochammer, x) = foldl(*, p.sₙ; init=x)
 Base.:/(x, p::RisingPochammer{0}) = x
 Base.:/(x, p::RisingPochammer{1}) = x / p.sₙ[1]
-Base.:/(x, p::RisingPochammer) = x / prod(p.sₙ)
+Base.:/(x, p::RisingPochammer) = foldl(/, p.sₙ; init=x)
 
 nontupletypes(αs::A, βs::B, z::Z) where {A<:Tuple{},B<:Tuple{},Z} = Z
 nontupletypes(αs::A, βs::B, z::Z) where {A,B<:Tuple{},Z} = promote_type(eltype(A),Z)
@@ -52,7 +52,7 @@ nontupletypes(αs::A, βs::B, z::Z) where {A,B,Z} = promote_type(eltype(A),eltyp
 function nloopsskip(αs, βs, z)
   T = float(nontupletypes(αs, βs, z))
   val = (foldl(*, αs; init=1) * z) / foldl(*, βs; init=1)
-  return max(floor(Int, log2(abs(val)) * 16), 1)
+  return max(floor(Int, log2(abs(val)) * 4), 1)
 end
 
 function pFq(αs, βs, z; maxiters::Int = 1000_000,
@@ -75,10 +75,93 @@ function pFq(αs, βs, z; maxiters::Int = 1000_000,
     βₙ(n)
     nbang *= (n += 1)
     a += (αₙ * inv(βₙ * nbang)) * zⁿ
-    @assert isfinite(a) (αₙ, zⁿ, (βₙ * nbang))
   end
-  return a
+  return isfinite(a) ? a : b
 end
+
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             levink=32, levinb=1, levinn=0, minloops=4)
+#             
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a, b = one(T), zero(T)
+#  numsum, densum = zero(T), zero(T)
+#  s = zⁿ = one(T)
+#  jbang = binomialkj = one(float(real(T)))
+#  sgn = -1
+#  j = 0
+#  while j < minloops || j < levink && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+#    b = a
+#    zⁿ *= z
+#    αₙ(j)
+#    βₙ(j)
+#    jbang *= (j += 1)
+#    t = (αₙ * inv(βₙ * jbang)) * zⁿ
+#    s += t
+#    njb = levinn + j + levinb
+#    sgn *= -1
+#    den = sgn * binomialkj / t * float(real(T))(njb)^(levink - 2)
+#    #den = sgn * binomialkj / t * exp(log(njb)*(levink - 2))
+#    num = den * s 
+#    densum += den
+#    numsum += num
+#    a = numsum / densum
+#    binomialkj *= (levink - j) / (j + 1)
+#  end
+#  return a
+#end
+
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=64eps(float(real(nontupletypes(αs, βs, z)))),
+#             minloops=nloopsskip(αs, βs, z))
+#             
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a = one(T)
+#  zⁿ = one(typeof(z))
+#  nbang = one(float(real(T)))
+#  x0 = a
+#
+#  n = 0
+#  zⁿ *= z
+#  αₙ(n)
+#  βₙ(n)
+#  nbang *= (n += 1) # n=1
+#  t = (αₙ * inv(βₙ * nbang)) * zⁿ
+#  a += t
+#  x1 = a
+#
+#  p = one(T)
+#  q = zero(T)
+#  while n < minloops || !fastisapprox(p, q, rtol=rtol, atol=0, nans=true)
+#    p = q
+#    zⁿ *= z
+#    αₙ(n)
+#    βₙ(n)
+#    nbang *= (n += 1)
+#    t = (αₙ * inv(βₙ * nbang)) * zⁿ
+#    a += t
+#    x2 = a
+#    isfinite(x2) || return q
+#    x1 == x2 && return q
+#    den = 1 / (x2 - x1) - 1 / (x1 - x0)
+#    iszero(den) && return q
+#    q = x1 + 1 / den
+#    x0 = x1
+#    x1 = x2
+#    x0 == x1 && return q
+#  end
+#  return q
+#end
 
 
 end # module NaivepFq
