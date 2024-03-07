@@ -55,29 +55,29 @@ function nloopsskip(αs, βs, z)
   return max(floor(Int, log2(abs(val)) * 4), 1)
 end
 
-function pFq(αs, βs, z; maxiters::Int = 1000_000,
-             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
-             minloops=nloopsskip(αs, βs, z))
-             
-  αₙ = RisingPochammer(αs)
-  βₙ = RisingPochammer(βs)
-
-  T = float(nontupletypes(αs, βs, z))
-  abs(z) < eps(real(T)) && return one(T)
-
-  a, b = one(T), zero(T)
-  zⁿ = nbang = one(T)
-  n = 0
-  while n < minloops || n < maxiters && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
-    b = a
-    zⁿ *= z
-    αₙ(n)
-    βₙ(n)
-    nbang *= (n += 1)
-    a += (αₙ * inv(βₙ * nbang)) * zⁿ
-  end
-  return isfinite(a) ? a : b
-end
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             minloops=nloopsskip(αs, βs, z))
+#             
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a, b = one(T), zero(T)
+#  zⁿ = nbang = one(T)
+#  n = 0
+#  while n < minloops || n < maxiters && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+#    b = a
+#    zⁿ *= z
+#    αₙ(n)
+#    βₙ(n)
+#    nbang *= (n += 1)
+#    a += (αₙ * inv(βₙ * nbang)) * zⁿ
+#  end
+#  return isfinite(a) ? a : b
+#end
 
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
 #             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
@@ -116,52 +116,55 @@ end
 #  return a
 #end
 
-#function pFq(αs, βs, z; maxiters::Int = 1000_000,
-#             rtol=64eps(float(real(nontupletypes(αs, βs, z)))),
-#             minloops=nloopsskip(αs, βs, z))
-#             
-#  αₙ = RisingPochammer(αs)
-#  βₙ = RisingPochammer(βs)
-#
-#  T = float(nontupletypes(αs, βs, z))
-#  abs(z) < eps(real(T)) && return one(T)
-#
-#  a = one(T)
-#  zⁿ = one(typeof(z))
-#  nbang = one(float(real(T)))
-#  x0 = a
-#
-#  n = 0
-#  zⁿ *= z
-#  αₙ(n)
-#  βₙ(n)
-#  nbang *= (n += 1) # n=1
-#  t = (αₙ * inv(βₙ * nbang)) * zⁿ
-#  a += t
-#  x1 = a
-#
-#  p = one(T)
-#  q = zero(T)
-#  while n < minloops || !fastisapprox(p, q, rtol=rtol, atol=0, nans=true)
-#    p = q
-#    zⁿ *= z
-#    αₙ(n)
-#    βₙ(n)
-#    nbang *= (n += 1)
-#    t = (αₙ * inv(βₙ * nbang)) * zⁿ
-#    a += t
-#    x2 = a
-#    isfinite(x2) || return q
-#    x1 == x2 && return q
-#    den = 1 / (x2 - x1) - 1 / (x1 - x0)
-#    iszero(den) && return q
-#    q = x1 + 1 / den
-#    x0 = x1
-#    x1 = x2
-#    x0 == x1 && return q
-#  end
-#  return q
-#end
+function pFq(αs, βs, z; maxiters::Int = 1000_000,
+             rtol=6400eps(float(real(nontupletypes(αs, βs, z)))),
+             minloops=nloopsskip(αs, βs, z))
+             
+  αₙ = RisingPochammer(αs)
+  βₙ = RisingPochammer(βs)
+
+  T = float(nontupletypes(αs, βs, z))
+  abs(z) < eps(real(T)) && return one(T)
+
+  a = one(T)
+  zⁿ = one(typeof(z))
+  nbang = one(float(real(T)))
+  x0 = a
+
+  n = 0
+  zⁿ *= z
+  αₙ(n)
+  βₙ(n)
+  nbang *= (n += 1) # n=1
+  t = (αₙ * inv(βₙ * nbang)) * zⁿ
+  a += t
+  x1 = a
+
+  r = -one(T)
+  p = one(T)
+  q = zero(T)
+
+  while n < minloops || !fastisapprox(r, q, rtol=rtol, atol=0, nans=true)
+    p = q
+    zⁿ *= z
+    αₙ(n)
+    βₙ(n)
+    nbang *= (n += 1)
+    t = (αₙ * inv(βₙ * nbang)) * zⁿ
+    a += t
+    x2 = a
+    isfinite(x2) || return q
+    x1 == x2 && return q
+    den = 1 / (x2 - x1) - 1 / (x1 - x0)
+    iszero(den) && return q
+    q = x1 + 1 / den
+    x0 = x1
+    x1 = x2
+    x0 == x1 && return q
+    r = (1 / n - 1 / (n-1)) / (1 / p / n - 1 / q / (n-1))
+  end
+  return r
+end
 
 
 end # module NaivepFq
