@@ -56,7 +56,7 @@ function nloopsskip(αs, βs, z)
   val = (foldl(*, αs; init=1) * z) / foldl(*, βs; init=1)
   return max(floor(Int, log2(abs(val)) * 4), 1)
 end
-
+# v innacurate
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
 #             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
 #             minloops=nloopsskip(αs, βs, z))
@@ -80,7 +80,7 @@ end
 #  end
 #  return isfinite(a) ? a : b
 #end
-
+## quite accurate
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
 #             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
 #             levink=32, levinb=1, levinn=0, minloops=4)
@@ -117,7 +117,7 @@ end
 #  end
 #  return a
 #end
-
+## v innacurate
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
 #             rtol=6400eps(float(real(nontupletypes(αs, βs, z)))),
 #             minloops=nloopsskip(αs, βs, z))
@@ -168,7 +168,7 @@ end
 #  return r
 #end
 
-
+# # v inaccurate
 #function pFq(αs, βs, z; maxiters::Int = 1000_000,
 #             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
 #             minloops=nloopsskip(αs, βs, z))
@@ -204,11 +204,85 @@ end
 #  return isfinite(r) ? r : s
 #end
 
+## not that accurate
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             drummondk=64, minloops=4)
+#
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a, b = one(T), zero(T)
+#  numsum, densum = zero(T), zero(T)
+#  s = zⁿ = one(T)
+#  jbang = binomialkj = one(float(real(T)))
+#  sgn = -1
+#  j = 0
+#  while j < minloops || j < drummondk && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+#    b = a
+#    zⁿ *= z
+#    αₙ(j)
+#    βₙ(j)
+#    jbang *= (j += 1)
+#    t = (αₙ * inv(βₙ * jbang)) * zⁿ
+#    s += t
+#    sgn *= -1
+#    den = sgn * binomialkj / t
+#    num = den * s
+#    densum += den
+#    numsum += num
+#    a = numsum / densum
+#    binomialkj *= (drummondk - j) / (j + 1)
+#  end
+#  return a
+#end
 
+## rubbish accuracy
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             wenigerk=2^10, wenigerb=1, wenigern=0, minloops=4)
+#
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#  cₙ = RisingPochammer((wenigerb + wenigern,))
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  abs(z) < eps(real(T)) && return one(T)
+#
+#  a, b = one(T), zero(T)
+#  numsum, densum = zero(T), zero(T)
+#  s = zⁿ = one(T)
+#  jbang = binomialkj = one(float(real(T)))
+#  sgn = -1
+#  j = 0
+#  while j < minloops || j < wenigerk && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+#    b = a
+#    zⁿ *= z
+#    αₙ(j)
+#    βₙ(j)
+#    cₙ(j)
+#    dₙ = mapreduce(i->wenigerb + wenigern + i, *, 0:j-1; init=1)
+#    jbang *= (j += 1)
+#    t = (αₙ * inv(βₙ * jbang)) * zⁿ
+#    s += t
+#    sgn *= -1
+#    den = cₙ * sgn * binomialkj / t / dₙ
+#    num = den * s
+#    densum += den
+#    numsum += num
+#    a = numsum / densum
+#    binomialkj *= (wenigerk - j) / (j + 1)
+#  end
+#  return a
+#end
+#
 function pFq(αs, βs, z; maxiters::Int = 1000_000,
              rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
-             drummondk=64, minloops=4)
-             
+             wenigerk=2^9, minloops=4)
+
   αₙ = RisingPochammer(αs)
   βₙ = RisingPochammer(βs)
 
@@ -218,10 +292,10 @@ function pFq(αs, βs, z; maxiters::Int = 1000_000,
   a, b = one(T), zero(T)
   numsum, densum = zero(T), zero(T)
   s = zⁿ = one(T)
-  jbang = binomialkj = one(float(real(T)))
+  jbang = binomialkj_num = binomialkj_den = one(float(real(T)))
   sgn = -1
   j = 0
-  while j < minloops || j < drummondk && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+  while j < minloops || !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
     b = a
     zⁿ *= z
     αₙ(j)
@@ -230,15 +304,37 @@ function pFq(αs, βs, z; maxiters::Int = 1000_000,
     t = (αₙ * inv(βₙ * jbang)) * zⁿ
     s += t
     sgn *= -1
-    den = sgn * binomialkj / t
+    den = sgn * binomialkj_num / (t * binomialkj_den)
     num = den * s 
     densum += den
     numsum += num
+    isfinite(densum) || return b
     a = numsum / densum
-    binomialkj *= (drummondk - j) / (j + 1)
+    binomialkj_num *= (wenigerk - j)
+    binomialkj_den *= (j + 1)
   end
-  return a
+  return b
 end
+
+#function pFq(αs, βs, z; maxiters::Int = 1000_000,
+#             rtol=8eps(float(real(nontupletypes(αs, βs, z)))),
+#             maclaurink=2^5, minloops=4)
+#
+#  αₙ = RisingPochammer(αs)
+#  βₙ = RisingPochammer(βs)
+#
+#  T = float(nontupletypes(αs, βs, z))
+#  b, a, j = one(T), 1 + (αₙ * z) / βₙ, 1
+#  while j < minloops || j < maclaurink && !fastisapprox(a, b, rtol=rtol, atol=0, nans=true)
+#    αₙ(j)
+#    βₙ(j)
+#    t = αₙ * z / (βₙ * (j + 1))
+#    b, a = a, a + (a - b) * t
+#    j += 1
+#  end
+#  return a
+#end
+
 
 
 end # module NaivepFq
